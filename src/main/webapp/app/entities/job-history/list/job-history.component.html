@@ -1,0 +1,134 @@
+<div>
+  <h2 id="page-heading" data-cy="JobHistoryHeading">
+    <span jhiTranslate="banopersApp.jobHistory.home.title">Job Histories</span>
+
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-info me-2" (click)="load()" [disabled]="isLoading">
+        <fa-icon icon="sync" [spin]="isLoading"></fa-icon>
+        <span jhiTranslate="banopersApp.jobHistory.home.refreshListLabel">Refresh list</span>
+      </button>
+
+      <button
+        id="jh-create-entity"
+        data-cy="entityCreateButton"
+        class="btn btn-primary jh-create-entity create-job-history"
+        [routerLink]="['/job-history/new']"
+      >
+        <fa-icon icon="plus"></fa-icon>
+        <span class="hidden-sm-down" jhiTranslate="banopersApp.jobHistory.home.createLabel"> Buat Job History baru </span>
+      </button>
+    </div>
+  </h2>
+
+  <jhi-alert-error></jhi-alert-error>
+
+  <jhi-alert></jhi-alert>
+
+  <form name="searchForm" class="row row-cols-sm-auto align-items-center">
+    <div class="col-sm-12">
+      <div class="input-group w-100 mt-3">
+        <label class="visually-hidden" for="currentSearch" jhiTranslate="banopersApp.jobHistory.home.search">Cari Job History</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="currentSearch"
+          id="currentSearch"
+          name="currentSearch"
+          placeholder="{{ 'banopersApp.jobHistory.home.search' | translate }}"
+        />
+
+        <button class="btn btn-info" (click)="search(currentSearch)">
+          <fa-icon icon="search"></fa-icon>
+        </button>
+
+        <button class="btn btn-danger" (click)="search('')" *ngIf="currentSearch">
+          <fa-icon icon="trash-alt"></fa-icon>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <div class="alert alert-warning" id="no-result" *ngIf="jobHistories?.length === 0">
+    <span jhiTranslate="banopersApp.jobHistory.home.notFound">No Job Histories found</span>
+  </div>
+
+  <div class="table-responsive" id="entities" *ngIf="jobHistories && jobHistories.length > 0">
+    <table class="table table-striped" aria-describedby="page-heading">
+      <thead>
+        <tr jhiSort [(predicate)]="predicate" [(ascending)]="ascending" (sortChange)="navigateToWithComponentValues()">
+          <th scope="col" jhiSortBy="id"><span jhiTranslate="global.field.id">ID</span> <fa-icon icon="sort"></fa-icon></th>
+          <th scope="col" jhiSortBy="startDate">
+            <span jhiTranslate="banopersApp.jobHistory.startDate">Start Date</span> <fa-icon icon="sort"></fa-icon>
+          </th>
+          <th scope="col" jhiSortBy="endDate">
+            <span jhiTranslate="banopersApp.jobHistory.endDate">End Date</span> <fa-icon icon="sort"></fa-icon>
+          </th>
+          <th scope="col" jhiSortBy="language">
+            <span jhiTranslate="banopersApp.jobHistory.language">Language</span> <fa-icon *ngIf="!currentSearch" icon="sort"></fa-icon>
+          </th>
+          <th scope="col" jhiSortBy="job.id"><span jhiTranslate="banopersApp.jobHistory.job">Job</span> <fa-icon icon="sort"></fa-icon></th>
+          <th scope="col" jhiSortBy="department.id">
+            <span jhiTranslate="banopersApp.jobHistory.department">Department</span> <fa-icon icon="sort"></fa-icon>
+          </th>
+          <th scope="col" jhiSortBy="employee.id">
+            <span jhiTranslate="banopersApp.jobHistory.employee">Employee</span> <fa-icon icon="sort"></fa-icon>
+          </th>
+          <th scope="col"></th>
+        </tr>
+      </thead>
+      <tbody infinite-scroll (scrolled)="loadPage(page + 1)" [infiniteScrollDisabled]="page >= links['last']" [infiniteScrollDistance]="0">
+        <tr *ngFor="let jobHistory of jobHistories; trackBy: trackId" data-cy="entityTable">
+          <td>
+            <a [routerLink]="['/job-history', jobHistory.id, 'view']">{{ jobHistory.id }}</a>
+          </td>
+          <td>{{ jobHistory.startDate | formatMediumDatetime }}</td>
+          <td>{{ jobHistory.endDate | formatMediumDatetime }}</td>
+          <td jhiTranslate="{{ 'banopersApp.Language.' + jobHistory.language }}">{{ jobHistory.language }}</td>
+          <td>
+            <div *ngIf="jobHistory.job">
+              <a [routerLink]="['/job', jobHistory.job.id, 'view']">{{ jobHistory.job?.id }}</a>
+            </div>
+          </td>
+          <td>
+            <div *ngIf="jobHistory.department">
+              <a [routerLink]="['/department', jobHistory.department.id, 'view']">{{ jobHistory.department?.id }}</a>
+            </div>
+          </td>
+          <td>
+            <div *ngIf="jobHistory.employee">
+              <a [routerLink]="['/employee', jobHistory.employee.id, 'view']">{{ jobHistory.employee?.id }}</a>
+            </div>
+          </td>
+          <td class="text-end">
+            <div class="btn-group">
+              <button
+                type="submit"
+                [routerLink]="['/job-history', jobHistory.id, 'view']"
+                class="btn btn-info btn-sm"
+                data-cy="entityDetailsButton"
+              >
+                <fa-icon icon="eye"></fa-icon>
+                <span class="d-none d-md-inline" jhiTranslate="entity.action.view">Lihat</span>
+              </button>
+
+              <button
+                type="submit"
+                [routerLink]="['/job-history', jobHistory.id, 'edit']"
+                class="btn btn-primary btn-sm"
+                data-cy="entityEditButton"
+              >
+                <fa-icon icon="pencil-alt"></fa-icon>
+                <span class="d-none d-md-inline" jhiTranslate="entity.action.edit">Ubah</span>
+              </button>
+
+              <button type="submit" (click)="delete(jobHistory)" class="btn btn-danger btn-sm" data-cy="entityDeleteButton">
+                <fa-icon icon="times"></fa-icon>
+                <span class="d-none d-md-inline" jhiTranslate="entity.action.delete">Hapus</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
